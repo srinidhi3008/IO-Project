@@ -20,8 +20,6 @@ import os
 import time # For logging approved replies
 
 app = Flask(__name__)
-
-# --- IN-MEMORY DATABASE ---
 db = {
     "drafts": {},
     "reply_logs": [],
@@ -32,13 +30,8 @@ db = {
     }
 }
 draft_counter = 0
-
-# --- MODEL CONFIGURATION ---
 tone_model_name = "facebook/bart-large-mnli"
 reply_model_name = "google/flan-t5-base"
-
-# --- LOAD MODELS ---
-print("Loading models... This may take a moment.")
 try:
     tone_classifier = pipeline("zero-shot-classification", model=tone_model_name, device=0 if torch.cuda.is_available() else -1)
 except Exception as e:
@@ -55,8 +48,6 @@ except Exception as e:
     print(f"[FATAL] Could not load reply model '{reply_model_name}': {e}")
     tokenizer = None
     reply_model = None
-
-# --- RAG (Retrieval) SETUP ---
 ENRON_PATH = Path("./data/enron_replies.csv")
 CORPUS = []
 
@@ -85,8 +76,6 @@ TONE_LABELS = [
     "neutral", "assertive", "enthusiastic", "empathetic", "directive",
     "informative", "customer_service", "urgent", "brief", "detailed"
 ]
-
-# --- TONE INSTRUCTIONS (Moved to global for reuse) ---
 TONE_INSTRUCTIONS = {
     "formal": "Be polite, concise, and professional.", "informal": "Be friendly, conversational, and relaxed.",
     "friendly": "Be warm, kind, and approachable.", "apologetic": "Be empathetic and include an apology if relevant.",
@@ -97,8 +86,6 @@ TONE_INSTRUCTIONS = {
     "customer_service": "Be polite, reassuring, and service-focused.", "urgent": "Be concise, clear, and emphasize timeliness.",
     "brief": "Keep it under three sentences, clear and direct.", "detailed": "Provide thoughtful and thorough explanations."
 }
-
-# --- CORE AI FUNCTIONS (Your engine) ---
 
 def predict_tone(email_text: str):
     """Predicts tone using the zero-shot classifier."""
@@ -146,7 +133,6 @@ def _generate_t5_text(prompt: str, generation_params: dict) -> list:
         print(f"[FATAL] T5 generation failed: {e}")
         return [f"Error: Could not generate reply. {e}"]
 
-# --- FIXED: Function for generating a reply ---
 def generate_reply_t5(email_text: str, tone: str = "formal", k_examples: int = 3) -> str:
     """Generates a single, creative reply."""
     tone_instruction = TONE_INSTRUCTIONS.get(tone.lower(), "Be professional.")
@@ -177,7 +163,6 @@ def generate_reply_t5(email_text: str, tone: str = "formal", k_examples: int = 3
 
     return _generate_t5_text(prompt, params)[0]
 
-# --- NEWLY SEPARATED: Function for extracting points ---
 def extract_main_points_t5(email_text: str) -> str:
     """Uses T5 to extract main points from an email."""
     prompt = (
@@ -221,9 +206,6 @@ def generate_reply_variants_t5(email_text: str, tone: str, k_examples: int = 2) 
     return _generate_t5_text(prompt, params)
 
 
-# --- FLASK API ENDPOINTS (Now correctly calling functions) ---
-
-# 1. POST /parse_email
 @app.route("/parse_email", methods=["POST"])
 def parse_email_api():
     """Extracts main points from raw email text using T5."""
@@ -235,7 +217,6 @@ def parse_email_api():
     points = extract_main_points_t5(text)
     return jsonify({"main_points": points})
 
-# 2. POST /generate_reply (with Agent)
 @app.route("/generate_reply", methods=["POST"])
 def generate_reply_api():
     """Generates an AI reply using the agent-driven pipeline."""
@@ -247,7 +228,6 @@ def generate_reply_api():
     if not text:
         return jsonify({"error": "email_text is required"}), 400
 
-    # --- AGENT LOGIC ---
     tone = db["sender_rules"].get(sender)
     if not tone:
         print(f"[Agent] No rule for {sender}. Predicting tone...")
@@ -255,9 +235,8 @@ def generate_reply_api():
         tone = tone_data.get("tone", "neutral")
     else:
         print(f"[Agent] Found rule for {sender}. Using tone: {tone}")
-    # --- END AGENT LOGIC ---
 
-    reply = generate_reply_t5(text, tone) # Now calls the correct reply function
+    reply = generate_reply_t5(text, tone)
 
     draft_counter += 1
     draft_id = draft_counter
@@ -270,7 +249,6 @@ def generate_reply_api():
 
     return jsonify(draft), 201
 
-# 3. POST /set_tone (Agent Training)
 @app.route("/set_tone", methods=["POST"])
 def set_tone_api():
     """Sets a specific tone for a sender (trains the agent)."""
@@ -287,13 +265,11 @@ def set_tone_api():
     db["sender_rules"][sender] = tone
     return jsonify({"message": f"Rule set: Sender '{sender}' will now use tone '{tone}'."})
 
-# 4. GET /saved_replies
 @app.route("/saved_replies", methods=["GET"])
 def get_saved_replies():
     """Returns all currently saved draft replies."""
     return jsonify(list(db["drafts"].values()))
 
-# 5. POST /approve_reply
 @app.route("/approve_reply", methods=["POST"])
 def approve_reply_api():
     """Marks a reply as approved, adds signature, and logs it."""
@@ -316,7 +292,6 @@ def approve_reply_api():
     db["reply_logs"].append(draft)
     return jsonify(draft)
 
-# 6. POST /reply_variants
 @app.route("/reply_variants", methods=["POST"])
 def reply_variants_api():
     """Generates multiple reply options."""
@@ -334,7 +309,6 @@ def reply_variants_api():
     variants = generate_reply_variants_t5(text, tone)
     return jsonify({"tone": tone, "variants": variants})
 
-# 7. POST /add_signature
 @app.route("/add_signature", methods=["POST"])
 def add_signature_api():
     """Sets or updates the global email signature."""
@@ -346,7 +320,6 @@ def add_signature_api():
     db["settings"]["signature"] = signature
     return jsonify({"message": "Signature updated successfully.", "signature": signature})
 
-# 8. GET /reply_history/
 @app.route("/reply_history/", methods=["GET"])
 def get_reply_history():
     """Fetches all approved reply logs."""
@@ -358,4 +331,4 @@ if __name__ == "__main__":
         print("\n[ERROR] One or more models failed to load. Exiting.")
     else:
         print("\nAll models loaded. Starting Flask server...")
-        app.run(debug=False, port=5001)
+        app.run(debug=True, port=5001)
