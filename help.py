@@ -7,9 +7,7 @@ import re
 import torch
 import os
 import time
-
 app = Flask(__name__)
-
 db = {
     "drafts": {},
     "reply_logs": [],
@@ -20,8 +18,6 @@ db = {
     }
 }
 draft_counter = 0
-
-
 GENERATOR_MODEL = "microsoft/phi-2"
 EMBEDDER_MODEL = "all-MiniLM-L6-v2"
 KNOWLEDGE_FILE = "knowledge_base.txt"
@@ -36,16 +32,13 @@ try:
     )
     
     sentiment_analyzer = pipeline("sentiment-analysis", device=0 if torch.cuda.is_available() else -1)
-    
     embedder = SentenceTransformer(EMBEDDER_MODEL)
     print("All models loaded successfully.")
-
 except Exception as e:
     print(f"[FATAL] Could not load models: {e}")
     generator = None
     sentiment_analyzer = None
     embedder = None
-
 try:
     with open(KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
         docs = [line.strip() for line in f.readlines() if line.strip()]
@@ -98,7 +91,6 @@ def detect_tone(email_text):
 def _run_phi_generation(prompt, params):
     if not generator:
         return ["Error: Generator model not loaded."]
-    
     try:
         results = generator(prompt, **params)
        
@@ -117,7 +109,6 @@ def generate_reply(email_text, tone="neutral", signature=None):
         f"**Email:**\n{email_text}\n\n"
         f"Reply:"
     )
-    
     params = {
         "max_new_tokens": 150, 
         "num_return_sequences": 1,
@@ -125,9 +116,7 @@ def generate_reply(email_text, tone="neutral", signature=None):
         "top_p": 0.95,
         "do_sample": True
     }
-    
     reply = _run_phi_generation(prompt, params)[0]
-    
     if signature:
         reply += f"\n\n{signature}"
     return reply
@@ -174,7 +163,6 @@ def parse_email_api():
     text = data.get("email_text", "").strip()
     if not text:
         return jsonify({"error": "email_text is required"}), 400
-
     points = extract_main_points(text)
     return jsonify({"main_points": points})
 
@@ -185,21 +173,17 @@ def generate_reply_api():
     data = request.get_json(force=True)
     text = data.get("email_text", "").strip()
     sender = data.get("sender", "").strip()
-    
     if not text:
         return jsonify({"error": "email_text is required"}), 400
 
 
     tone = db["sender_rules"].get(sender)
     if not tone:
-        # 2. If no rule, use AI to detect tone
         print(f"[Agent] No rule for {sender}. Detecting tone...")
         tone = detect_tone(text)
     else:
         print(f"[Agent] Found rule for {sender}. Using tone: {tone}")
-        
     reply = generate_reply(text, tone) 
-    
     draft_counter += 1
     draft_id = draft_counter
     draft = {
@@ -208,7 +192,6 @@ def generate_reply_api():
         "created_at": time.time()
     }
     db["drafts"][draft_id] = draft
-    
     return jsonify(draft), 201
 
 # 3. POST /set_tone (Agent Training)
@@ -217,13 +200,10 @@ def set_tone_api():
     data = request.get_json(force=True)
     sender = data.get("sender", "").strip()
     tone = data.get("tone", "").strip()
-    
     if not sender or not tone:
         return jsonify({"error": "sender and tone are required"}), 400
-        
     if tone not in TONE_LABELS:
         return jsonify({"error": f"Invalid tone. Must be one of: {TONE_LABELS}"}), 400
-    
     db["sender_rules"][sender] = tone
     return jsonify({"message": f"Rule set: Sender '{sender}' will now use tone '{tone}'."})
 
@@ -240,12 +220,9 @@ def approve_reply_api():
         reply_id = int(data.get("reply_id"))
     except (TypeError, ValueError):
         return jsonify({"error": "reply_id (integer) is required"}), 400
-        
     draft = db["drafts"].pop(reply_id, None)
-    
     if not draft:
         return jsonify({"error": f"Draft reply with id {reply_id} not found."}), 404
-        
     signature = db["settings"]["signature"]
     draft["final_text"] = f"{draft['reply_text']}\n\n{signature}"
     draft["status"] = "approved"
@@ -260,14 +237,10 @@ def reply_variants_api():
     data = request.get_json(force=True)
     text = data.get("email_text", "").strip()
     tone = data.get("tone", None)
-    
     if not text:
         return jsonify({"error": "email_text is required"}), 400
-        
     if not tone:
-        
         tone = detect_tone(text)
-        
     variants = generate_reply_variants(text, tone)
     return jsonify({"tone": tone, "variants": variants})
 
@@ -295,3 +268,4 @@ if __name__ == "__main__":
         print("\nAll models loaded. Starting Flask server...")
 
         app.run(debug=True, port=5001)
+
