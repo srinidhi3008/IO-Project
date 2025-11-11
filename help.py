@@ -6,7 +6,7 @@ import numpy as np
 import re
 import torch
 import os
-import time # For logging approved replies
+import time
 
 app = Flask(__name__)
 
@@ -88,7 +88,7 @@ def detect_tone(email_text):
         if sentiment == 'POSITIVE':
             return "friendly"
         elif sentiment == 'NEGATIVE':
-            return "formal" # Treat negative sentiment as needing a formal reply
+            return "formal" 
         else:
             return "neutral"
     except Exception as e:
@@ -101,7 +101,7 @@ def _run_phi_generation(prompt, params):
     
     try:
         results = generator(prompt, **params)
-        # Parse the reply, splitting off the prompt
+       
         replies = [re.split(r'Reply:', res["generated_text"])[-1].strip() for res in results]
         return replies
     except Exception as e:
@@ -119,7 +119,7 @@ def generate_reply(email_text, tone="neutral", signature=None):
     )
     
     params = {
-        "max_new_tokens": 150, # Use max_new_tokens for generators
+        "max_new_tokens": 150, 
         "num_return_sequences": 1,
         "temperature": 0.7,
         "top_p": 0.95,
@@ -137,12 +137,12 @@ def extract_main_points(email_text: str) -> str:
         f"You are a summarization assistant. Summarize the key action items and questions from the following email. "
         f"Present them as a bulleted list.\n\n"
         f"**Email:**\n{email_text}\n\n"
-        f"Reply:" # Using 'Reply:' as the separator
+        f"Reply:" 
     )
     params = {
         "max_new_tokens": 100,
         "num_return_sequences": 1,
-        "temperature": 0.3, # Low temp for factual summary
+        "temperature": 0.3, 
         "do_sample": True
     }
     return _run_phi_generation(prompt, params)[0]
@@ -160,7 +160,7 @@ def generate_reply_variants(email_text: str, tone: str) -> list:
     params = {
         "max_new_tokens": 150,
         "num_return_sequences": 3,
-        "num_beams": 5, # Use beam search for variants
+        "num_beams": 5, 
         "early_stopping": True
     }
     return _run_phi_generation(prompt, params)
@@ -198,7 +198,7 @@ def generate_reply_api():
     else:
         print(f"[Agent] Found rule for {sender}. Using tone: {tone}")
         
-    reply = generate_reply(text, tone) # Pass detected/set tone to generator
+    reply = generate_reply(text, tone) 
     
     draft_counter += 1
     draft_id = draft_counter
@@ -265,7 +265,7 @@ def reply_variants_api():
         return jsonify({"error": "email_text is required"}), 400
         
     if not tone:
-        # Fallback to AI detection
+        
         tone = detect_tone(text)
         
     variants = generate_reply_variants(text, tone)
@@ -293,4 +293,5 @@ if __name__ == "__main__":
         print("\n[ERROR] One or more models failed to load. Exiting.")
     else:
         print("\nAll models loaded. Starting Flask server...")
+
         app.run(debug=True, port=5001)
