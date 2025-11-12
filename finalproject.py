@@ -102,25 +102,19 @@ def _run_phi_generation(prompt, params):
         print("[DEBUG] generation params:", params)
         results = generator(prompt, **params)
         print("[DEBUG] raw results:", results)
-
-        # Normalize results: pipeline may return dict, list of dicts, or a string
         normalized = []
         if isinstance(results, dict):
             results = [results]
 
         for res in results:
-            # if res is a dict with generated_text
             if isinstance(res, dict) and "generated_text" in res:
                 text = res["generated_text"]
             else:
                 text = str(res)
 
-            # Remove the prompt if present and split off "Reply:" marker
-            # This is tolerant if prompt is not included in the output
-            # and ensures we return a non-empty cleaned reply
+        
             reply = re.split(r'Reply:', text, maxsplit=1)[-1].strip()
             if not reply:
-                # fallback: try removing the whole prompt prefix (if model returned prompt+completion)
                 reply = text[len(prompt):].strip() if text.startswith(prompt) else text.strip()
             normalized.append(reply)
 
@@ -161,12 +155,12 @@ def extract_main_points(email_text: str) -> str:
         f"You are a summarization assistant. Summarize the key action items and questions from the following email. "
         f"Present them as a bulleted list.\n\n"
         f"**Email:**\n{email_text}\n\n"
-        f"Reply:" # Using 'Reply:' as the separator
+        f"Reply:" 
     )
     params = {
         "max_new_tokens": 100,
         "num_return_sequences": 1,
-        "temperature": 0.3, # Low temp for factual summary
+        "temperature": 0.3, 
         "do_sample": True
     }
     return _run_phi_generation(prompt, params)[0]
@@ -181,7 +175,6 @@ def generate_reply_variants(email_text: str, tone: str) -> list:
         f"Reply:"
     )
 
-    # Use sampling for diverse variants (or switch to beams + ensure num_return_sequences <= num_beams)
     params = {
         "max_new_tokens": 150,
         "num_return_sequences": 2,
@@ -219,13 +212,12 @@ def generate_reply_api():
 
     tone = db["sender_rules"].get(sender)
     if not tone:
-        # 2. If no rule, use AI to detect tone
         print(f"[Agent] No rule for {sender}. Detecting tone...")
         tone = detect_tone(text)
     else:
         print(f"[Agent] Found rule for {sender}. Using tone: {tone}")
         
-    reply = generate_reply(text, tone) # Pass detected/set tone to generator
+    reply = generate_reply(text, tone) 
     
     draft_counter += 1
     draft_id = draft_counter
@@ -318,4 +310,5 @@ if __name__ == "__main__":
         print("\n[ERROR] One or more models failed to load. Exiting.")
     else:
         print("\nAll models loaded. Starting Flask server...")
+
         app.run(debug=True, port=5001)
