@@ -189,7 +189,6 @@ def generate_reply_variants(email_text: str, tone: str) -> list:
 # 1. POST /parse_email
 @app.route("/parse_email", methods=["POST"])
 def parse_email_api():
-    """Extracts main points from raw email text using Phi-2."""
     data = request.get_json(force=True)
     text = data.get("email_text", "").strip()
     if not text:
@@ -312,3 +311,4 @@ if __name__ == "__main__":
         print("\nAll models loaded. Starting Flask server...")
 
         app.run(debug=True, port=5001)
+
