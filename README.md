@@ -18,8 +18,6 @@ This project is a Flask API server that uses LLMs (`microsoft/phi-2`) and a vect
 
 ## API Endpoints
 
-### Core AI
-
 * `POST /generate_reply`
     * **Body:** `{"sender": "...", "email_text": "..."}`
     * **Action:** The main "Agent" endpoint. It automatically detects the tone (or uses a sender rule) and generates a single, context-aware reply using RAG.
@@ -34,8 +32,6 @@ This project is a Flask API server that uses LLMs (`microsoft/phi-2`) and a vect
     * **Body:** `{"email_text": "...", "tone": "(optional)"}`
     * **Action:** Generates 2-3 different reply options for the given email.
     * **Returns:** `{"tone": "...", "variants": [...]}`
-
-### Memory & Management
 
 * `POST /set_tone`
     * **Body:** `{"sender": "...", "tone": "formal" | "friendly" | "neutral"}`
