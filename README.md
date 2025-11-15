@@ -1,7 +1,7 @@
 # IO-Project
 # AI-Powered Email Reply Generator
 
-This project is a Flask API server that uses LLMs (`microsoft/phi-2`) and a vector database (`FAISS`) to analyze emails and generate intelligent, context-aware replies. It is designed to be the "brain" for any email client, such as a browser extension, desktop app, or mobile app.
+This project is a REST API server built using Flask. It uses LLMs (`microsoft/phi-2`) and a vector database (`FAISS`) to analyze emails and generate intelligent, context-aware replies. It is designed to be the "brain" for any email client, such as a browser extension, desktop app, or mobile app.
 
 ---
 
