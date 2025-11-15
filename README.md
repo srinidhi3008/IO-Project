@@ -1,6 +1,6 @@
 # IO-Project
-This project is a Flask API server that uses LLMs (microsoft/phi-2) and a vector database (FAISS) to analyse emails and generate intelligent, context-aware replies.
-It is designed to be the "brain" for any email client, such as a browser extension, desktop app, or mobile app.
+*This project is a Flask API server that uses LLMs (microsoft/phi-2) and a vector database (FAISS) to analyse emails and generate intelligent, context-aware replies.
+*It is designed to be the "brain" for any email client, such as a browser extension, desktop app, or mobile app.
 Tech Stack-
 Framework: Flask
 AI/ML: transformers (Hugging Face)
